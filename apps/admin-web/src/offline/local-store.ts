@@ -1,0 +1,11 @@
+import { OfflineQueueItem, OfflineOperation } from './types';
+const DB_NAME='rwanimu-offline'; const DB_VERSION=1; const STORE='sync_queue';
+function openDb():Promise<IDBDatabase>{return new Promise((resolve,reject)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains(STORE)){const s=db.createObjectStore(STORE,{keyPath:'id'});s.createIndex('status','status');s.createIndex('createdAt','createdAt');}};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
+function uuid(){return crypto.randomUUID();}
+export async function enqueueOffline(input:{operation:OfflineOperation;payload:unknown;deviceId:string;userId:string;locationId:string;occurredAt?:string}){
+ const now=new Date().toISOString(); const item:OfflineQueueItem={id:uuid(),...input,occurredAt:input.occurredAt??now,createdAt:now,updatedAt:now,status:'PENDING',attempts:0};
+ const db=await openDb(); await new Promise<void>((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).add(item);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);}); db.close(); return item;
+}
+export async function listPending():Promise<OfflineQueueItem[]>{const db=await openDb();const rows=await new Promise<OfflineQueueItem[]>((res,rej)=>{const r=db.transaction(STORE).objectStore(STORE).getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});db.close();return rows.filter(x=>x.status==='PENDING'||x.status==='SYNCING').sort((a,b)=>a.createdAt.localeCompare(b.createdAt));}
+export async function updateQueueItem(id:string,patch:Partial<OfflineQueueItem>){const db=await openDb();await new Promise<void>((res,rej)=>{const tx=db.transaction(STORE,'readwrite');const s=tx.objectStore(STORE);const g=s.get(id);g.onsuccess=()=>{if(!g.result) return rej(new Error('Queue item not found'));s.put({...g.result,...patch,updatedAt:new Date().toISOString()});};g.onerror=()=>rej(g.error);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});db.close();}
+export async function getQueueCounts(){const db=await openDb();const rows=await new Promise<OfflineQueueItem[]>((res,rej)=>{const r=db.transaction(STORE).objectStore(STORE).getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});db.close();return rows.reduce<Record<string,number>>((a,x)=>(a[x.status]=(a[x.status]||0)+1,a),{});}

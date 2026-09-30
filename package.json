@@ -1,0 +1,17 @@
+{
+  "name": "rwanimu-shop-management-system",
+  "private": true,
+  "version": "0.2.19",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm --workspace @rwanimu/admin-web run dev",
+    "dev:site": "npm --workspace @rwanimu/public-website run dev",
+    "dev:api": "npm --workspace @rwanimu/api run start:dev",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "seed:dev-admin": "node scripts/create-dev-admin.cjs"
+  }
+}

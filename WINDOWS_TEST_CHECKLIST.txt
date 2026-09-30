@@ -1,0 +1,27 @@
+RWANIMU WINDOWS TEST CHECKLIST
+
+[ ] App/project starts without fatal error
+[ ] Login/logout works
+[ ] Role and location restrictions work
+[ ] Sales Save + Confirm works once only
+[ ] Negative stock is blocked
+[ ] Customer debt/payment/credit works
+[ ] No cash-refund ordinary workflow is exposed
+[ ] Purchases and supplier balances work
+[ ] Weighted average cost behaves correctly
+[ ] Branch request/approval/dispatch/receipt works
+[ ] In Transit stock is not available at either endpoint
+[ ] Branch transfer transport enters landed cost only
+[ ] Ordinary Main Shop transport expense remains an expense
+[ ] Storekeeper blind count never reveals computed stock
+[ ] Damage/Missing adjustment requires authorized control/audit
+[ ] Low Stock 1–50 and Out of Stock 0 work by location
+[ ] Reports respect role permissions
+[ ] Printed/PDF outputs respect role permissions
+[ ] Backup Now / daily backup / restore protection works
+[ ] Messaging failure does not undo confirmed sales
+[ ] Public website exposes public data only
+[ ] Official logo/contact details display correctly
+[ ] English/Kinyarwanda UI works where implemented
+[ ] No dead, duplicate, confusing or unauthorized controls
+[ ] Offline Trusted Device queue/retry/idempotency works where implemented

@@ -1,0 +1,2 @@
+import { Module } from '@nestjs/common'; import { AuthModule } from '../auth/auth.module'; import { TrustedDevicesController } from './trusted-devices.controller'; import { TrustedDevicesService } from './trusted-devices.service'; import { DeviceTokenService } from './device-token.service';
+@Module({imports:[AuthModule],controllers:[TrustedDevicesController],providers:[TrustedDevicesService,DeviceTokenService],exports:[TrustedDevicesService]}) export class TrustedDevicesModule {}

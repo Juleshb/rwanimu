@@ -1,0 +1,6 @@
+{
+  "name": "@rwanimu/shared-types",
+  "private": true,
+  "version": "0.2.19",
+  "main": "index.ts"
+}

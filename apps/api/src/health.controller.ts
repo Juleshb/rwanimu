@@ -1,0 +1,1 @@
+import { Controller, Get } from '@nestjs/common'; @Controller('health') export class HealthController { @Get() check(){return {status:'ok',system:'RWANIMU Shop Management System',implementation:'2.2'};} }

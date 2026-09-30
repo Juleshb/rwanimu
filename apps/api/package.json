@@ -1,0 +1,31 @@
+{
+  "name": "@rwanimu/api",
+  "private": true,
+  "version": "0.2.17-11",
+  "scripts": {
+    "start:dev": "nest start --watch",
+    "build": "nest build",
+    "test": "jest --runInBand"
+  },
+  "dependencies": {
+    "@nestjs/common": "latest",
+    "@nestjs/core": "latest",
+    "@nestjs/platform-express": "latest",
+    "@nestjs/config": "latest",
+    "@nestjs/jwt": "latest",
+    "reflect-metadata": "latest",
+    "rxjs": "latest",
+    "pg": "latest"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "latest",
+    "@nestjs/testing": "latest",
+    "typescript": "5.8.3",
+    "ts-node": "latest",
+    "jest": "latest",
+    "ts-jest": "latest",
+    "@types/jest": "latest",
+    "@types/node": "latest",
+    "@types/pg": "latest"
+  }
+}

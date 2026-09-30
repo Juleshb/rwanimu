@@ -1,0 +1,34 @@
+RWANIMU Company Ltd
+FINAL PRE-WINDOWS CHECKPOINT — 25 September 2026
+
+STATUS
+- Development/requirements baseline: APPROVED
+- Final Pre-Windows Audit: PASSED
+- Latest verified source baseline used for this package: Implementation 2.18
+- Official branding in 2.18 source: IMPLEMENTED
+- Windows/Web runtime testing: PENDING
+- Production-ready: NOT YET
+
+IMPORTANT
+This consolidated package preserves the authoritative Implementation 2.18 source code and adds the
+Final Pre-Windows checkpoint/testing guidance. Approval of later design/validation items does not
+by itself prove that every item is implemented in source. Windows testing must verify actual behavior.
+
+CORE RULES TO VERIFY ON WINDOWS
+1. No negative stock. Low Stock = 1–50; Out of Stock = 0.
+2. Storekeeper blind count: no computed/system stock quantity may be exposed to Storekeeper.
+3. Main Shop → Branch: Request → Approval → Dispatch → In Transit → Receipt → Completed.
+4. Main stock reduces at Dispatch; Branch stock increases only at confirmed Receipt.
+5. Transfer transport is Branch landed inventory cost, not ordinary expense.
+6. Sales confirmation updates sale, stock, payment/debt/credit, COGS and audit atomically.
+7. No ordinary returns/cash refunds; customer credit is used on future purchases.
+8. Purchases/supplier debt and customer debt remain separately traceable.
+9. Role/location permissions apply to UI, reports, exports and backend behavior.
+10. Daily backup, protected restore and audit history must be tested.
+11. Public website must not expose internal cost/profit/supplier/stock-management information.
+12. Every visible field/button/filter must work and be required; remove dead/confusing controls.
+13. Official branding: RWANIMU Company Ltd; WhatsApp 0783005604; Telephone 0788542392.
+
+NEXT ACTION
+Run Windows/Web runtime testing from this package. Record PASS/FAIL for each checklist item.
+Only after successful runtime verification should status change to WINDOWS/WEB TESTED.
