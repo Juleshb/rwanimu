@@ -1,4 +1,4 @@
-export const API = 'http://localhost:3000/api';
+export const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 export type Role = 'ADMIN' | 'MANAGER' | 'STOREKEEPER' | 'BRANCH_USER';
 export type User = { sub: string; username: string; role: Role; locationId: string | null };
 
