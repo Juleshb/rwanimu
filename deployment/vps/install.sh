@@ -47,6 +47,42 @@ fi
 install -d -o rwanimu -g rwanimu -m 750 /var/backups/rwanimu/primary /var/backups/rwanimu/secondary
 systemctl enable --now postgresql
 
+cluster_line=$(pg_lsclusters --no-header | awk '$4=="online" {print; exit}')
+if [[ -z "${cluster_line}" ]]; then
+  echo "PostgreSQL did not start."
+  pg_lsclusters || true
+  exit 1
+fi
+PGVER=$(awk '{print $1}' <<<"${cluster_line}")
+PGNAME=$(awk '{print $2}' <<<"${cluster_line}")
+PGPORT=$(awk '{print $3}' <<<"${cluster_line}")
+
+move_shop_database_port() {
+  local candidate newport=""
+  for candidate in 5433 5434 5435 5436 5437; do
+    if [[ "${candidate}" == "${PGPORT}" ]]; then
+      continue
+    fi
+    if ! ss -lnt "sport = :${candidate}" | awk 'NR>1 {found=1} END {exit !found}'; then
+      newport="${candidate}"
+      break
+    fi
+  done
+  if [[ -z "${newport}" ]]; then
+    echo "Port ${PGPORT} belongs to another database, and no free port was found."
+    exit 1
+  fi
+  echo "Port ${PGPORT} belongs to another database. The shop database will use ${newport}."
+  pg_conftool "${PGVER}" "${PGNAME}" set port "${newport}"
+  systemctl restart postgresql
+  PGPORT="${newport}"
+}
+
+tcp_msg=$(sudo -u postgres psql -h 127.0.0.1 -p "${PGPORT}" -c 'SELECT 1' 2>&1 || true)
+if grep -Eq 'does not exist|Connection refused|could not connect' <<<"${tcp_msg}"; then
+  move_shop_database_port
+fi
+
 ENV_FILE="${APP_DIR}/.env"
 FRESH_ENV=0
 if [[ ! -f "${ENV_FILE}" ]]; then
@@ -57,7 +93,7 @@ if [[ ! -f "${ENV_FILE}" ]]; then
   cat > "${ENV_FILE}" <<EOF
 NODE_ENV=production
 PORT=3000
-DATABASE_URL=postgresql://rwanimu:${DB_PASS}@127.0.0.1:5432/rwanimu_shop
+DATABASE_URL=postgresql://rwanimu:${DB_PASS}@127.0.0.1:${PGPORT}/rwanimu_shop
 JWT_SECRET=${JWT_SECRET}
 DEFAULT_LANGUAGE=en
 TZ=Africa/Kigali
@@ -87,22 +123,46 @@ if [[ -z "${DB_PASS}" || "${DB_PASS}" == "${DATABASE_URL}" || "${DB_PASS}" == *"
   exit 1
 fi
 
-sudo -u postgres psql -v ON_ERROR_STOP=1 <<SQL
-DO \$\$
-BEGIN
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'rwanimu') THEN
-    CREATE ROLE rwanimu LOGIN PASSWORD '${DB_PASS}';
-  ELSE
-    ALTER ROLE rwanimu WITH LOGIN PASSWORD '${DB_PASS}';
-  END IF;
-END
-\$\$;
-SQL
-
-if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname = 'rwanimu_shop'" | grep -q 1; then
-  sudo -u postgres createdb --owner=rwanimu rwanimu_shop
+if [[ "${DATABASE_URL}" == postgresql://*@127.0.0.1:*/* || "${DATABASE_URL}" == postgresql://*@localhost:*/* ]]; then
+  UPDATED_URL=$(printf '%s\n' "${DATABASE_URL}" | sed -E "s#@(127\\.0\\.0\\.1|localhost):[0-9]+/#@127.0.0.1:${PGPORT}/#")
+  if [[ "${UPDATED_URL}" != "${DATABASE_URL}" ]]; then
+    sed -i "s#^DATABASE_URL=.*#DATABASE_URL=${UPDATED_URL}#" "${ENV_FILE}"
+    DATABASE_URL="${UPDATED_URL}"
+  fi
 fi
-sudo -u postgres psql -d rwanimu_shop -v ON_ERROR_STOP=1 -c "GRANT ALL ON SCHEMA public TO rwanimu;"
+
+if sudo -u postgres psql -p "${PGPORT}" -tAc "SELECT 1 FROM pg_roles WHERE rolname = 'rwanimu'" | grep -q 1; then
+  sudo -u postgres psql -p "${PGPORT}" -v ON_ERROR_STOP=1 -c "ALTER ROLE rwanimu WITH LOGIN PASSWORD '${DB_PASS}'"
+else
+  sudo -u postgres psql -p "${PGPORT}" -v ON_ERROR_STOP=1 -c "CREATE ROLE rwanimu LOGIN PASSWORD '${DB_PASS}'"
+fi
+
+if ! sudo -u postgres psql -p "${PGPORT}" -tAc "SELECT 1 FROM pg_database WHERE datname = 'rwanimu_shop'" | grep -q 1; then
+  sudo -u postgres createdb -p "${PGPORT}" --owner=rwanimu rwanimu_shop
+fi
+sudo -u postgres psql -p "${PGPORT}" -d rwanimu_shop -v ON_ERROR_STOP=1 -c "GRANT ALL ON SCHEMA public TO rwanimu;"
+
+use_shop_database_port() {
+  UPDATED_URL=$(printf '%s\n' "${DATABASE_URL}" | sed -E "s#@(127\\.0\\.0\\.1|localhost):[0-9]+/#@127.0.0.1:${PGPORT}/#")
+  if [[ "${UPDATED_URL}" != "${DATABASE_URL}" ]]; then
+    sed -i "s#^DATABASE_URL=.*#DATABASE_URL=${UPDATED_URL}#" "${ENV_FILE}"
+    DATABASE_URL="${UPDATED_URL}"
+  fi
+}
+
+login_msg=$(psql "${DATABASE_URL}" -tAc 'SELECT current_user' 2>&1 || true)
+if [[ "$(printf '%s' "${login_msg}" | tr -d '[:space:]')" != "rwanimu" ]] && grep -Eq 'does not exist|Connection refused|could not connect' <<<"${login_msg}"; then
+  move_shop_database_port
+  use_shop_database_port
+  login_msg=$(psql "${DATABASE_URL}" -tAc 'SELECT current_user' 2>&1 || true)
+fi
+if [[ "$(printf '%s' "${login_msg}" | tr -d '[:space:]')" != "rwanimu" ]]; then
+  echo "Could not sign in to the shop database on 127.0.0.1:${PGPORT}."
+  printf '%s\n' "${login_msg}" | sed -E 's#postgresql://[^@]+@#postgresql://rwanimu@#'
+  pg_lsclusters || true
+  ss -lnt | grep -E '543[0-9]' || true
+  exit 1
+fi
 
 psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -c \
   "CREATE TABLE IF NOT EXISTS schema_migrations (filename text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now());"
