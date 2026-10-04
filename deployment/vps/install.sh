@@ -186,8 +186,8 @@ install -d -o rwanimu -g rwanimu /var/lib/rwanimu/npm-cache
 rm -rf "${APP_DIR}/node_modules"
 (
   cd "${APP_DIR}"
-  sudo -u rwanimu env HOME=/var/lib/rwanimu npm_config_cache=/var/lib/rwanimu/npm-cache -u NODE_ENV npm install --cache /var/lib/rwanimu/npm-cache
-  sudo -u rwanimu env HOME=/var/lib/rwanimu npm_config_cache=/var/lib/rwanimu/npm-cache -u NODE_ENV npm run build --workspace @rwanimu/api
+  sudo -u rwanimu env -u NODE_ENV HOME=/var/lib/rwanimu npm_config_cache=/var/lib/rwanimu/npm-cache npm install --cache /var/lib/rwanimu/npm-cache
+  sudo -u rwanimu env -u NODE_ENV HOME=/var/lib/rwanimu npm_config_cache=/var/lib/rwanimu/npm-cache npm run build --workspace @rwanimu/api
 )
 
 ADMIN_READY=$(psql "${DATABASE_URL}" -tAc "SELECT 1 FROM users WHERE username = 'admin'")
