@@ -16,6 +16,7 @@ fi
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 APP_DIR=$(cd "${SCRIPT_DIR}/../.." && pwd)
+git config --global --add safe.directory "${APP_DIR}" || true
 if [[ ! -f "${APP_DIR}/apps/api/src/main.ts" ]]; then
   echo "Run this script from a clone of the RWANIMU repository."
   exit 1
@@ -182,9 +183,10 @@ psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -f "${APP_DIR}/database/seeds/001_loca
 
 chown -R rwanimu:rwanimu "${APP_DIR}"
 install -d -o rwanimu -g rwanimu /var/lib/rwanimu/npm-cache
+rm -rf "${APP_DIR}/node_modules"
 (
   cd "${APP_DIR}"
-  sudo -u rwanimu env HOME=/var/lib/rwanimu npm_config_cache=/var/lib/rwanimu/npm-cache -u NODE_ENV npm install
+  sudo -u rwanimu env HOME=/var/lib/rwanimu npm_config_cache=/var/lib/rwanimu/npm-cache -u NODE_ENV npm install --cache /var/lib/rwanimu/npm-cache
   sudo -u rwanimu env HOME=/var/lib/rwanimu npm_config_cache=/var/lib/rwanimu/npm-cache -u NODE_ENV npm run build --workspace @rwanimu/api
 )
 
