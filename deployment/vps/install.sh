@@ -78,7 +78,7 @@ move_shop_database_port() {
   PGPORT="${newport}"
 }
 
-tcp_msg=$(sudo -u postgres psql -h 127.0.0.1 -p "${PGPORT}" -c 'SELECT 1' 2>&1 || true)
+tcp_msg=$(sudo -u postgres psql -w -h 127.0.0.1 -p "${PGPORT}" -c 'SELECT 1' 2>&1 || true)
 if grep -Eq 'does not exist|Connection refused|could not connect' <<<"${tcp_msg}"; then
   move_shop_database_port
 fi
@@ -181,10 +181,11 @@ shopt -u nullglob
 psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -f "${APP_DIR}/database/seeds/001_locations.sql"
 
 chown -R rwanimu:rwanimu "${APP_DIR}"
+install -d -o rwanimu -g rwanimu /var/lib/rwanimu/npm-cache
 (
   cd "${APP_DIR}"
-  sudo -u rwanimu env -u NODE_ENV npm install
-  sudo -u rwanimu env -u NODE_ENV npm run build --workspace @rwanimu/api
+  sudo -u rwanimu env HOME=/var/lib/rwanimu npm_config_cache=/var/lib/rwanimu/npm-cache -u NODE_ENV npm install
+  sudo -u rwanimu env HOME=/var/lib/rwanimu npm_config_cache=/var/lib/rwanimu/npm-cache -u NODE_ENV npm run build --workspace @rwanimu/api
 )
 
 ADMIN_READY=$(psql "${DATABASE_URL}" -tAc "SELECT 1 FROM users WHERE username = 'admin'")
@@ -193,7 +194,8 @@ if [[ "${ADMIN_READY}" != "1" ]]; then
   ADMIN_PASSWORD=$(openssl rand -hex 12)
   (
     cd "${APP_DIR}"
-    sudo -u rwanimu env DATABASE_URL="${DATABASE_URL}" DEV_ADMIN_USERNAME=admin DEV_ADMIN_PASSWORD="${ADMIN_PASSWORD}" \
+    sudo -u rwanimu env HOME=/var/lib/rwanimu npm_config_cache=/var/lib/rwanimu/npm-cache \
+      DATABASE_URL="${DATABASE_URL}" DEV_ADMIN_USERNAME=admin DEV_ADMIN_PASSWORD="${ADMIN_PASSWORD}" \
       npm run seed:dev-admin
   )
   umask 077
